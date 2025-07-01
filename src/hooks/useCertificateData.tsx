@@ -24,6 +24,14 @@ export interface CertificateApplication {
   rejection_reason?: string;
 }
 
+// Generate unique application ID
+const generateApplicationId = async (): Promise<string> => {
+  const year = new Date().getFullYear();
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `CERT${year}${timestamp}${random}`;
+};
+
 export const useCertificateData = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -51,18 +59,15 @@ export const useCertificateData = () => {
     mutationFn: async (applicationData: Omit<CertificateApplication, 'id' | 'application_id' | 'status' | 'created_at' | 'updated_at'>) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // Generate application ID
-      const { data: appId, error: idError } = await supabase
-        .rpc('generate_application_id');
-      
-      if (idError) throw idError;
+      // Generate unique application ID
+      const applicationId = await generateApplicationId();
 
       const { data, error } = await supabase
         .from('certificate_applications')
         .insert({
           ...applicationData,
           user_id: user.id,
-          application_id: appId,
+          application_id: applicationId,
           status: 'pending'
         })
         .select()

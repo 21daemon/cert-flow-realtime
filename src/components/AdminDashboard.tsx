@@ -3,279 +3,250 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { 
-  Users, 
-  FileCheck, 
-  Clock, 
-  AlertTriangle, 
-  TrendingUp, 
-  Calendar,
-  Search,
-  Filter,
-  Download,
-  Eye,
-  CheckCircle,
-  XCircle
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { FileText, Clock, CheckCircle, XCircle, User, Calendar } from 'lucide-react';
+import { useAdminData } from '@/hooks/useCertificateData';
+import { format } from 'date-fns';
 
 export const AdminDashboard = () => {
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  const { allApplications, applicationsLoading, updateApplicationStatus } = useAdminData();
+  const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
-  const pendingApplications = [
-    {
-      id: 'CERT2024001',
-      applicant: 'Rajesh Kumar',
-      type: 'Caste Certificate',
-      submittedDate: '2024-01-15',
-      priority: 'High',
-      assignedTo: 'Officer A',
-      daysWaiting: 5
-    },
-    {
-      id: 'CERT2024002',
-      applicant: 'Priya Sharma',
-      type: 'Income Certificate',
-      submittedDate: '2024-01-16',
-      priority: 'Medium',
-      assignedTo: 'Officer B',
-      daysWaiting: 4
-    },
-    {
-      id: 'CERT2024003',
-      applicant: 'Mohammed Ali',
-      type: 'Domicile Certificate',
-      submittedDate: '2024-01-18',
-      priority: 'Low',
-      assignedTo: 'Officer C',
-      daysWaiting: 2
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="h-5 w-5 text-yellow-600" />;
+      case 'under_review':
+        return <Clock className="h-5 w-5 text-blue-600" />;
+      case 'approved':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'rejected':
+        return <XCircle className="h-5 w-5 text-red-600" />;
+      default:
+        return <FileText className="h-5 w-5 text-gray-600" />;
     }
-  ];
+  };
 
-  const recentActivities = [
-    {
-      id: 1,
-      action: 'Certificate Approved',
-      applicant: 'Sunil Gupta',
-      officer: 'Officer A',
-      timestamp: '2 hours ago',
-      type: 'approval'
-    },
-    {
-      id: 2,
-      action: 'Document Verification',
-      applicant: 'Anjali Reddy',
-      officer: 'Officer B',
-      timestamp: '4 hours ago',
-      type: 'verification'
-    },
-    {
-      id: 3,
-      action: 'Application Submitted',
-      applicant: 'Vikram Singh',
-      officer: 'System',
-      timestamp: '6 hours ago',
-      type: 'submission'
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'status-pending';
+      case 'under_review':
+        return 'status-under-review';
+      case 'approved':
+        return 'status-approved';
+      case 'rejected':
+        return 'status-rejected';
+      default:
+        return 'status-pending';
     }
-  ];
+  };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'High': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+  const formatCertificateType = (type: string) => {
+    return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
+  };
+
+  const handleStatusUpdate = async (applicationId: string, status: 'pending' | 'under_review' | 'approved' | 'rejected') => {
+    try {
+      await updateApplicationStatus.mutateAsync({
+        applicationId,
+        status,
+        rejectionReason: status === 'rejected' ? rejectionReason : undefined
+      });
+      setSelectedApplication(null);
+      setRejectionReason('');
+    } catch (error) {
+      console.error('Error updating status:', error);
     }
+  };
+
+  if (applicationsLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  const stats = {
+    total: allApplications?.length || 0,
+    pending: allApplications?.filter(app => app.status === 'pending').length || 0,
+    underReview: allApplications?.filter(app => app.status === 'under_review').length || 0,
+    approved: allApplications?.filter(app => app.status === 'approved').length || 0,
+    rejected: allApplications?.filter(app => app.status === 'rejected').length || 0
   };
 
   return (
     <div className="space-y-6">
+      {/* Admin Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Card className="certificate-card">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+            <div className="text-sm text-gray-600">Total</div>
+          </CardContent>
+        </Card>
+        <Card className="certificate-card">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            <div className="text-sm text-gray-600">Pending</div>
+          </CardContent>
+        </Card>
+        <Card className="certificate-card">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{stats.underReview}</div>
+            <div className="text-sm text-gray-600">Under Review</div>
+          </CardContent>
+        </Card>
+        <Card className="certificate-card">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
+            <div className="text-sm text-gray-600">Approved</div>
+          </CardContent>
+        </Card>
+        <Card className="certificate-card">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
+            <div className="text-sm text-gray-600">Rejected</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Applications List */}
       <Card className="certificate-card">
         <CardHeader>
-          <CardTitle className="text-2xl text-gray-800">Administrative Dashboard</CardTitle>
+          <CardTitle className="flex items-center">
+            <FileText className="h-6 w-6 mr-2" />
+            All Applications
+          </CardTitle>
           <CardDescription>
-            Monitor applications, manage workflows, and track department performance
+            Manage and review certificate applications
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          {!allApplications || allApplications.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No applications found</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {allApplications.map((application) => (
+                <div key={application.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      {getStatusIcon(application.status)}
+                      <div>
+                        <h3 className="font-semibold">{application.application_id}</h3>
+                        <p className="text-sm text-gray-600">
+                          {formatCertificateType(application.certificate_type)} Certificate
+                        </p>
+                      </div>
+                    </div>
+                    <Badge className={getStatusColor(application.status)}>
+                      {application.status.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm">
+                    <div className="flex items-center space-x-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span>{application.full_name}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span>{format(new Date(application.created_at), 'MMM dd, yyyy')}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Phone: </span>
+                      <span>{application.phone_number}</span>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 text-sm">
+                    <span className="font-medium text-gray-600">Purpose: </span>
+                    <span>{application.purpose}</span>
+                  </div>
+
+                  {application.status === 'rejected' && application.rejection_reason && (
+                    <Alert variant="destructive" className="mb-4">
+                      <XCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Rejection Reason:</strong> {application.rejection_reason}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Status Update Controls */}
+                  <div className="flex items-center space-x-4 pt-4 border-t">
+                    <div className="flex items-center space-x-2">
+                      <Label>Update Status:</Label>
+                      <Select 
+                        onValueChange={(value) => {
+                          if (value === 'rejected') {
+                            setSelectedApplication(application.id);
+                          } else {
+                            handleStatusUpdate(application.id, value as any);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="under_review">Under Review</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Rejection Reason Input */}
+                  {selectedApplication === application.id && (
+                    <div className="mt-4 p-4 bg-red-50 rounded-lg">
+                      <Label htmlFor="rejectionReason">Rejection Reason *</Label>
+                      <Textarea
+                        id="rejectionReason"
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        placeholder="Please provide a reason for rejection..."
+                        className="mt-2"
+                        rows={3}
+                      />
+                      <div className="flex space-x-2 mt-3">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleStatusUpdate(application.id, 'rejected')}
+                          disabled={!rejectionReason.trim() || updateApplicationStatus.isPending}
+                        >
+                          Confirm Rejection
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedApplication(null);
+                            setRejectionReason('');
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
       </Card>
-
-      <Tabs defaultValue="applications" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="applications">Applications</TabsTrigger>
-          <TabsTrigger value="verification">Verification</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="activities">Activities</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="applications" className="space-y-6">
-          <Card className="certificate-card">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center space-x-2">
-                  <FileCheck className="h-5 w-5" />
-                  <span>Pending Applications</span>
-                </CardTitle>
-                <div className="flex space-x-2">
-                  <Input placeholder="Search applications..." className="w-64" />
-                  <Button variant="outline">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filter
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {pendingApplications.map((app) => (
-                  <div key={app.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-4">
-                        <div>
-                          <h3 className="font-semibold">{app.applicant}</h3>
-                          <p className="text-sm text-gray-600">{app.type} • {app.id}</p>
-                        </div>
-                        <Badge className={getPriorityColor(app.priority)}>
-                          {app.priority}
-                        </Badge>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">Waiting: {app.daysWaiting} days</p>
-                        <p className="text-xs text-gray-500">Assigned to: {app.assignedTo}</p>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <p className="text-sm text-gray-600">
-                        Submitted: {new Date(app.submittedDate).toLocaleDateString()}
-                      </p>
-                      <div className="flex space-x-2">
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-4 w-4 mr-2" />
-                          Review
-                        </Button>
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Approve
-                        </Button>
-                        <Button size="sm" variant="destructive">
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="verification">
-          <Card className="certificate-card">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Search className="h-5 w-5" />
-                <span>Document Verification</span>
-              </CardTitle>
-              <CardDescription>
-                Verify documents and cross-check with central databases
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Document verification interface</p>
-                <p className="text-sm text-gray-500 mt-2">Connect to databases for automated verification</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="reports">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="certificate-card">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <TrendingUp className="h-5 w-5" />
-                  <span>Performance Metrics</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span>Average Processing Time</span>
-                    <span className="font-semibold">2.3 days</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Applications This Month</span>
-                    <span className="font-semibold">456</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Approval Rate</span>
-                    <span className="font-semibold">89.2%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Pending Applications</span>
-                    <span className="font-semibold">23</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="certificate-card">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Calendar className="h-5 w-5" />
-                  <span>Monthly Statistics</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Chart visualization would go here</p>
-                  <Button className="mt-4" variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="activities">
-          <Card className="certificate-card">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Clock className="h-5 w-5" />
-                <span>Recent Activities</span>
-              </CardTitle>
-              <CardDescription>
-                Real-time log of all system activities and transactions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-center space-x-4 p-3 border rounded-lg">
-                    <div className={`w-3 h-3 rounded-full ${
-                      activity.type === 'approval' ? 'bg-green-500' :
-                      activity.type === 'verification' ? 'bg-blue-500' : 'bg-gray-500'
-                    }`}></div>
-                    <div className="flex-1">
-                      <p className="font-medium">{activity.action}</p>
-                      <p className="text-sm text-gray-600">
-                        {activity.applicant} • Handled by {activity.officer}
-                      </p>
-                    </div>
-                    <span className="text-sm text-gray-500">{activity.timestamp}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 };

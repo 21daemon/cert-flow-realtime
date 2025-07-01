@@ -4,173 +4,283 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Send, FileText } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileText, Upload, CheckCircle } from 'lucide-react';
+import { useCertificateData } from '@/hooks/useCertificateData';
+import { useAuth } from '@/hooks/useAuth';
 
 export const CertificateApplication = () => {
+  const { user } = useAuth();
+  const { submitApplication } = useCertificateData();
+  
   const [formData, setFormData] = useState({
-    certificateType: '',
-    fullName: '',
-    fatherName: '',
-    dateOfBirth: '',
+    certificate_type: '' as 'caste' | 'income' | 'domicile' | 'residence' | '',
+    full_name: '',
+    father_name: '',
+    date_of_birth: '',
     address: '',
-    phoneNumber: '',
-    email: '',
+    phone_number: '',
+    email: user?.email || '',
     purpose: '',
-    additionalInfo: ''
+    additional_info: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Application submitted:', formData);
-    toast({
-      title: "Application Submitted Successfully",
-      description: "Your certificate application has been submitted. You will receive updates via SMS and email.",
-    });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const certificateTypes = [
+    { value: 'caste', label: 'Caste Certificate', description: 'Official caste verification document' },
+    { value: 'income', label: 'Income Certificate', description: 'Income verification for government schemes' },
+    { value: 'domicile', label: 'Domicile Certificate', description: 'Proof of residence in the state' },
+    { value: 'residence', label: 'Residence Certificate', description: 'Local residence verification document' }
+  ];
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.certificate_type) newErrors.certificate_type = 'Please select a certificate type';
+    if (!formData.full_name.trim()) newErrors.full_name = 'Full name is required';
+    if (!formData.father_name.trim()) newErrors.father_name = 'Father\'s name is required';
+    if (!formData.date_of_birth) newErrors.date_of_birth = 'Date of birth is required';
+    if (!formData.address.trim()) newErrors.address = 'Address is required';
+    if (!formData.phone_number.trim()) newErrors.phone_number = 'Phone number is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!formData.purpose.trim()) newErrors.purpose = 'Purpose is required';
+
+    // Validate phone number format
+    if (formData.phone_number && !/^\d{10}$/.test(formData.phone_number.replace(/\D/g, ''))) {
+      newErrors.phone_number = 'Please enter a valid 10-digit phone number';
+    }
+
+    // Validate email format
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    try {
+      await submitApplication.mutateAsync({
+        certificate_type: formData.certificate_type as 'caste' | 'income' | 'domicile' | 'residence',
+        full_name: formData.full_name,
+        father_name: formData.father_name,
+        date_of_birth: formData.date_of_birth,
+        address: formData.address,
+        phone_number: formData.phone_number,
+        email: formData.email,
+        purpose: formData.purpose,
+        additional_info: formData.additional_info
+      });
+
+      // Reset form on success
+      setFormData({
+        certificate_type: '',
+        full_name: '',
+        father_name: '',
+        date_of_birth: '',
+        address: '',
+        phone_number: '',
+        email: user?.email || '',
+        purpose: '',
+        additional_info: ''
+      });
+    } catch (error) {
+      console.error('Error submitting application:', error);
+    }
   };
 
   return (
     <Card className="certificate-card">
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <FileText className="h-5 w-5" />
-          <span>Certificate Application Form</span>
+        <CardTitle className="flex items-center">
+          <FileText className="h-6 w-6 mr-2" />
+          Apply for Certificate
         </CardTitle>
         <CardDescription>
-          Fill in the required details to apply for your certificate
+          Fill out the form below to apply for your government certificate
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="certificateType">Certificate Type *</Label>
-              <Select onValueChange={(value) => handleInputChange('certificateType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select certificate type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="caste">Caste Certificate</SelectItem>
-                  <SelectItem value="income">Income Certificate</SelectItem>
-                  <SelectItem value="domicile">Domicile Certificate</SelectItem>
-                  <SelectItem value="residence">Residence Certificate</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Certificate Type Selection */}
+          <div className="space-y-4">
+            <Label>Certificate Type *</Label>
+            <RadioGroup
+              value={formData.certificate_type}
+              onValueChange={(value) => setFormData({ ...formData, certificate_type: value as any })}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {certificateTypes.map((cert) => (
+                  <div key={cert.value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={cert.value} id={cert.value} />
+                    <div className="flex-1">
+                      <label
+                        htmlFor={cert.value}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {cert.label}
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">{cert.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </RadioGroup>
+            {errors.certificate_type && (
+              <p className="text-sm text-red-600">{errors.certificate_type}</p>
+            )}
+          </div>
 
+          {/* Personal Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name *</Label>
+              <Label htmlFor="full_name">Full Name *</Label>
               <Input
-                id="fullName"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
+                id="full_name"
+                type="text"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 placeholder="Enter your full name"
-                required
               />
+              {errors.full_name && <p className="text-sm text-red-600">{errors.full_name}</p>}
             </div>
-
+            
             <div className="space-y-2">
-              <Label htmlFor="fatherName">Father's Name *</Label>
+              <Label htmlFor="father_name">Father's Name *</Label>
               <Input
-                id="fatherName"
-                value={formData.fatherName}
-                onChange={(e) => handleInputChange('fatherName', e.target.value)}
-                placeholder="Enter father's name"
-                required
+                id="father_name"
+                type="text"
+                value={formData.father_name}
+                onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
+                placeholder="Enter your father's name"
               />
+              {errors.father_name && <p className="text-sm text-red-600">{errors.father_name}</p>}
             </div>
-
+            
             <div className="space-y-2">
-              <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+              <Label htmlFor="date_of_birth">Date of Birth *</Label>
               <Input
-                id="dateOfBirth"
+                id="date_of_birth"
                 type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                required
+                value={formData.date_of_birth}
+                onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
               />
+              {errors.date_of_birth && <p className="text-sm text-red-600">{errors.date_of_birth}</p>}
             </div>
-
+            
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Phone Number *</Label>
+              <Label htmlFor="phone_number">Phone Number *</Label>
               <Input
-                id="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                placeholder="Enter phone number"
-                required
+                id="phone_number"
+                type="tel"
+                value={formData.phone_number}
+                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                placeholder="Enter your phone number"
               />
+              {errors.phone_number && <p className="text-sm text-red-600">{errors.phone_number}</p>}
             </div>
+          </div>
 
+          {/* Contact Information */}
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email Address *</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="Enter email address"
-                required
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="Enter your email address"
+              />
+              {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="address">Complete Address *</Label>
+              <Textarea
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Enter your complete address"
+                rows={3}
+              />
+              {errors.address && <p className="text-sm text-red-600">{errors.address}</p>}
+            </div>
+          </div>
+
+          {/* Purpose and Additional Information */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="purpose">Purpose of Certificate *</Label>
+              <Textarea
+                id="purpose"
+                value={formData.purpose}
+                onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+                placeholder="Explain why you need this certificate"
+                rows={2}
+              />
+              {errors.purpose && <p className="text-sm text-red-600">{errors.purpose}</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="additional_info">Additional Information (Optional)</Label>
+              <Textarea
+                id="additional_info"
+                value={formData.additional_info}
+                onChange={(e) => setFormData({ ...formData, additional_info: e.target.value })}
+                placeholder="Any additional information you'd like to provide"
+                rows={2}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="address">Complete Address *</Label>
-            <Textarea
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              placeholder="Enter complete address with pin code"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="purpose">Purpose of Certificate *</Label>
-            <Input
-              id="purpose"
-              value={formData.purpose}
-              onChange={(e) => handleInputChange('purpose', e.target.value)}
-              placeholder="e.g., College admission, job application, etc."
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="additionalInfo">Additional Information</Label>
-            <Textarea
-              id="additionalInfo"
-              value={formData.additionalInfo}
-              onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
-              placeholder="Any additional information or special requirements"
-            />
-          </div>
-
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-2">Upload Supporting Documents</p>
-            <p className="text-sm text-gray-500 mb-4">
-              Upload Aadhaar card, proof of address, and other relevant documents
-            </p>
-            <Button type="button" variant="outline">
-              Choose Files
-            </Button>
-          </div>
-
+          {/* Submit Button */}
           <div className="flex justify-end space-x-4">
-            <Button type="button" variant="outline">
-              Save as Draft
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setFormData({
+                  certificate_type: '',
+                  full_name: '',
+                  father_name: '',
+                  date_of_birth: '',
+                  address: '',
+                  phone_number: '',
+                  email: user?.email || '',
+                  purpose: '',
+                  additional_info: ''
+                });
+                setErrors({});
+              }}
+            >
+              Reset Form
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-              <Send className="h-4 w-4 mr-2" />
-              Submit Application
+            <Button
+              type="submit"
+              disabled={submitApplication.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {submitApplication.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Submit Application
+                </>
+              )}
             </Button>
           </div>
         </form>

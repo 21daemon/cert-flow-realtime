@@ -9,16 +9,282 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      application_documents: {
+        Row: {
+          application_id: string
+          document_name: string
+          document_type: string
+          file_path: string
+          file_size: number | null
+          id: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          application_id: string
+          document_name: string
+          document_type: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          application_id?: string
+          document_name?: string
+          document_type?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_documents_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "certificate_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      certificate_applications: {
+        Row: {
+          additional_info: string | null
+          address: string
+          application_id: string
+          approved_at: string | null
+          assigned_officer: string | null
+          certificate_type: Database["public"]["Enums"]["certificate_type"]
+          created_at: string | null
+          current_stage: string | null
+          date_of_birth: string
+          email: string
+          estimated_completion: string | null
+          father_name: string
+          full_name: string
+          id: string
+          phone_number: string
+          progress: number | null
+          purpose: string
+          rejected_at: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["application_status"] | null
+          submitted_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          additional_info?: string | null
+          address: string
+          application_id: string
+          approved_at?: string | null
+          assigned_officer?: string | null
+          certificate_type: Database["public"]["Enums"]["certificate_type"]
+          created_at?: string | null
+          current_stage?: string | null
+          date_of_birth: string
+          email: string
+          estimated_completion?: string | null
+          father_name: string
+          full_name: string
+          id?: string
+          phone_number: string
+          progress?: number | null
+          purpose: string
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["application_status"] | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          additional_info?: string | null
+          address?: string
+          application_id?: string
+          approved_at?: string | null
+          assigned_officer?: string | null
+          certificate_type?: Database["public"]["Enums"]["certificate_type"]
+          created_at?: string | null
+          current_stage?: string | null
+          date_of_birth?: string
+          email?: string
+          estimated_completion?: string | null
+          father_name?: string
+          full_name?: string
+          id?: string
+          phone_number?: string
+          progress?: number | null
+          purpose?: string
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["application_status"] | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      certificates: {
+        Row: {
+          application_id: string
+          certificate_data: Json | null
+          certificate_number: string
+          certificate_type: Database["public"]["Enums"]["certificate_type"]
+          created_at: string | null
+          digital_signature: string | null
+          id: string
+          issued_date: string | null
+          issued_to: string
+          valid_until: string | null
+        }
+        Insert: {
+          application_id: string
+          certificate_data?: Json | null
+          certificate_number: string
+          certificate_type: Database["public"]["Enums"]["certificate_type"]
+          created_at?: string | null
+          digital_signature?: string | null
+          id?: string
+          issued_date?: string | null
+          issued_to: string
+          valid_until?: string | null
+        }
+        Update: {
+          application_id?: string
+          certificate_data?: Json | null
+          certificate_number?: string
+          certificate_type?: Database["public"]["Enums"]["certificate_type"]
+          created_at?: string | null
+          digital_signature?: string | null
+          id?: string
+          issued_date?: string | null
+          issued_to?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "certificate_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          related_application_id: string | null
+          title: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          related_application_id?: string | null
+          title: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          related_application_id?: string | null
+          title?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_related_application_id_fkey"
+            columns: ["related_application_id"]
+            isOneToOne: false
+            referencedRelation: "certificate_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          full_name: string
+          id: string
+          phone_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          full_name: string
+          id: string
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          full_name?: string
+          id?: string
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_application_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      application_status: "pending" | "under_review" | "approved" | "rejected"
+      certificate_type: "caste" | "income" | "domicile" | "residence"
+      user_role: "citizen" | "admin" | "officer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +399,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      application_status: ["pending", "under_review", "approved", "rejected"],
+      certificate_type: ["caste", "income", "domicile", "residence"],
+      user_role: ["citizen", "admin", "officer"],
+    },
   },
 } as const

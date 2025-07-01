@@ -1,110 +1,142 @@
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CertificateApplication } from './CertificateApplication';
 import { ApplicationTracker } from './ApplicationTracker';
-import { FileText, Search, Download, Award } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { useCertificateData } from '@/hooks/useCertificateData';
 
 export const CitizenPortal = () => {
-  const certificateTypes = [
-    {
-      id: 'caste',
-      name: 'Caste Certificate',
-      description: 'For reservation benefits and educational purposes',
-      icon: Award,
-      processing: '2-3 days'
-    },
-    {
-      id: 'income',
-      name: 'Income Certificate',
-      description: 'For financial assistance and loan applications',
-      icon: FileText,
-      processing: '1-2 days'
-    },
-    {
-      id: 'domicile',
-      name: 'Domicile Certificate',
-      description: 'Proof of residence for various purposes',
-      icon: FileText,
-      processing: '2-4 days'
-    },
-    {
-      id: 'residence',
-      name: 'Residence Certificate',
-      description: 'Permanent residence verification',
-      icon: FileText,
-      processing: '1-3 days'
+  const { applications, isLoading } = useCertificateData();
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="h-4 w-4" />;
+      case 'under_review':
+        return <AlertCircle className="h-4 w-4" />;
+      case 'approved':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'rejected':
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return <FileText className="h-4 w-4" />;
     }
-  ];
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'status-pending';
+      case 'under_review':
+        return 'status-under-review';
+      case 'approved':
+        return 'status-approved';
+      case 'rejected':
+        return 'status-rejected';
+      default:
+        return 'status-pending';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <Card className="certificate-card">
-        <CardHeader>
-          <CardTitle className="text-2xl text-gray-800">Citizen Services Portal</CardTitle>
-          <CardDescription>
-            Apply for certificates, track applications, and download digital certificates
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="certificate-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Applications</p>
+                <p className="text-2xl font-bold">{applications?.length || 0}</p>
+              </div>
+              <FileText className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="certificate-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Pending</p>
+                <p className="text-2xl font-bold">
+                  {applications?.filter(app => app.status === 'pending' || app.status === 'under_review').length || 0}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="certificate-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Approved</p>
+                <p className="text-2xl font-bold">
+                  {applications?.filter(app => app.status === 'approved').length || 0}
+                </p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-      <Tabs defaultValue="apply" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="apply">Apply for Certificate</TabsTrigger>
-          <TabsTrigger value="track">Track Application</TabsTrigger>
-          <TabsTrigger value="download">Download Certificates</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="apply" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {certificateTypes.map((cert) => (
-              <Card key={cert.id} className="certificate-card cursor-pointer hover:border-blue-300 transition-colors">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <cert.icon className="h-8 w-8 text-blue-600" />
+      {/* Recent Applications */}
+      {applications && applications.length > 0 && (
+        <Card className="certificate-card">
+          <CardHeader>
+            <CardTitle>Recent Applications</CardTitle>
+            <CardDescription>Your latest certificate applications</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {applications.slice(0, 3).map((app) => (
+                <div key={app.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    {getStatusIcon(app.status)}
                     <div>
-                      <CardTitle className="text-lg">{cert.name}</CardTitle>
-                      <CardDescription>{cert.description}</CardDescription>
+                      <p className="font-medium">{app.application_id}</p>
+                      <p className="text-sm text-gray-600">
+                        {app.certificate_type.charAt(0).toUpperCase() + app.certificate_type.slice(1)} Certificate
+                      </p>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Processing Time: {cert.processing}</span>
-                    <span className="text-sm font-medium text-green-600">Available</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
+                  <Badge className={getStatusColor(app.status)}>
+                    {app.status.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Tabs */}
+      <Tabs defaultValue="apply" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="apply">Apply for Certificate</TabsTrigger>
+          <TabsTrigger value="track">Track Applications</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="apply">
           <CertificateApplication />
         </TabsContent>
-
+        
         <TabsContent value="track">
           <ApplicationTracker />
-        </TabsContent>
-
-        <TabsContent value="download">
-          <Card className="certificate-card">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Download className="h-5 w-5" />
-                <span>Download Certificates</span>
-              </CardTitle>
-              <CardDescription>
-                Access and download your approved digital certificates
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Download className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No certificates available for download</p>
-                <p className="text-sm text-gray-500 mt-2">Approved certificates will appear here</p>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

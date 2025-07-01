@@ -1,164 +1,172 @@
 
-import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Clock, CheckCircle, XCircle, FileCheck, Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileText, Clock, CheckCircle, XCircle, Download, Eye } from 'lucide-react';
+import { useCertificateData } from '@/hooks/useCertificateData';
+import { format } from 'date-fns';
 
 export const ApplicationTracker = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const mockApplications = [
-    {
-      id: 'CERT2024001',
-      type: 'Caste Certificate',
-      submittedDate: '2024-01-15',
-      status: 'Under Review',
-      estimatedCompletion: '2024-01-20',
-      currentStage: 'Document Verification',
-      progress: 60
-    },
-    {
-      id: 'CERT2024002',
-      type: 'Income Certificate',
-      submittedDate: '2024-01-10',
-      status: 'Approved',
-      completedDate: '2024-01-18',
-      currentStage: 'Certificate Issued',
-      progress: 100
-    },
-    {
-      id: 'CERT2024003',
-      type: 'Domicile Certificate',
-      submittedDate: '2024-01-20',
-      status: 'Pending',
-      estimatedCompletion: '2024-01-25',
-      currentStage: 'Initial Review',
-      progress: 25
-    }
-  ];
+  const { applications, isLoading } = useCertificateData();
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Approved':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'Under Review':
+      case 'pending':
+        return <Clock className="h-5 w-5 text-yellow-600" />;
+      case 'under_review':
         return <Clock className="h-5 w-5 text-blue-600" />;
-      case 'Rejected':
+      case 'approved':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'rejected':
         return <XCircle className="h-5 w-5 text-red-600" />;
       default:
-        return <FileCheck className="h-5 w-5 text-yellow-600" />;
+        return <FileText className="h-5 w-5 text-gray-600" />;
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      'Approved': 'status-approved',
-      'Under Review': 'status-under-review',
-      'Pending': 'status-pending',
-      'Rejected': 'status-rejected'
-    };
-    return variants[status as keyof typeof variants] || 'status-pending';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'status-pending';
+      case 'under_review':
+        return 'status-under-review';
+      case 'approved':
+        return 'status-approved';
+      case 'rejected':
+        return 'status-rejected';
+      default:
+        return 'status-pending';
+    }
   };
+
+  const formatCertificateType = (type: string) => {
+    return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!applications || applications.length === 0) {
+    return (
+      <Card className="certificate-card">
+        <CardContent className="text-center py-12">
+          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Applications Found</h3>
+          <p className="text-gray-600 mb-4">
+            You haven't submitted any certificate applications yet.
+          </p>
+          <Button variant="outline">
+            Apply for Certificate
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <Card className="certificate-card">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Search className="h-5 w-5" />
-            <span>Track Your Applications</span>
+          <CardTitle className="flex items-center">
+            <FileText className="h-6 w-6 mr-2" />
+            Your Applications
           </CardTitle>
           <CardDescription>
-            Monitor the status and progress of your certificate applications
+            Track the status of all your certificate applications
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex space-x-4 mb-6">
-            <div className="flex-1">
-              <Input
-                placeholder="Search by Application ID or Certificate Type"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Search className="h-4 w-4 mr-2" />
-              Search
-            </Button>
-          </div>
-        </CardContent>
       </Card>
 
-      <div className="space-y-4">
-        {mockApplications.map((app) => (
-          <Card key={app.id} className="certificate-card">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  {getStatusIcon(app.status)}
-                  <div>
-                    <h3 className="font-semibold text-lg">{app.type}</h3>
-                    <p className="text-gray-600">Application ID: {app.id}</p>
-                  </div>
-                </div>
-                <Badge className={`px-3 py-1 ${getStatusBadge(app.status)}`}>
-                  {app.status}
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      {applications.map((application) => (
+        <Card key={application.id} className="certificate-card">
+          <CardHeader>
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-3">
+                {getStatusIcon(application.status)}
                 <div>
-                  <p className="text-sm text-gray-600">Submitted Date</p>
-                  <p className="font-medium">{new Date(app.submittedDate).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Current Stage</p>
-                  <p className="font-medium">{app.currentStage}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">
-                    {app.status === 'Approved' ? 'Completed Date' : 'Expected Completion'}
-                  </p>
-                  <p className="font-medium">
-                    {app.completedDate ? 
-                      new Date(app.completedDate).toLocaleDateString() : 
-                      new Date(app.estimatedCompletion).toLocaleDateString()
-                    }
-                  </p>
+                  <CardTitle className="text-lg">{application.application_id}</CardTitle>
+                  <CardDescription>
+                    {formatCertificateType(application.certificate_type)} Certificate
+                  </CardDescription>
                 </div>
               </div>
-
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Progress</span>
-                  <span>{app.progress}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${app.progress}%` }}
-                  ></div>
-                </div>
+              <Badge className={getStatusColor(application.status)}>
+                {application.status.replace('_', ' ').toUpperCase()}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Application Progress */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Progress</span>
+                <span>{application.progress || 25}%</span>
               </div>
+              <Progress value={application.progress || 25} className="w-full" />
+              <p className="text-sm text-gray-600">
+                Current Stage: {application.current_stage || 'Initial Review'}
+              </p>
+            </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" size="sm">
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Details
+            {/* Application Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-gray-600">Applicant Name:</span>
+                <p>{application.full_name}</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-600">Application Date:</span>
+                <p>{format(new Date(application.created_at), 'MMM dd, yyyy')}</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-600">Phone:</span>
+                <p>{application.phone_number}</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-600">Email:</span>
+                <p>{application.email}</p>
+              </div>
+            </div>
+
+            {/* Purpose */}
+            <div className="text-sm">
+              <span className="font-medium text-gray-600">Purpose:</span>
+              <p className="mt-1">{application.purpose}</p>
+            </div>
+
+            {/* Rejection Reason */}
+            {application.status === 'rejected' && application.rejection_reason && (
+              <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Rejection Reason:</strong> {application.rejection_reason}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex space-x-2 pt-4 border-t">
+              <Button variant="outline" size="sm">
+                <Eye className="h-4 w-4 mr-2" />
+                View Details
+              </Button>
+              {application.status === 'approved' && (
+                <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Certificate
                 </Button>
-                {app.status === 'Approved' && (
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                    Download Certificate
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };

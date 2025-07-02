@@ -238,11 +238,12 @@ export const useRoleManagement = () => {
         throw new Error('User already has this role');
       }
 
+      // Use type assertion to bypass TypeScript enum restriction
       const { data, error } = await supabase
         .from('user_roles')
         .insert({
           user_id: userId,
-          role: role as any // Type assertion since the enum types aren't updated yet
+          role: role as any
         })
         .select()
         .single();

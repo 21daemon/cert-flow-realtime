@@ -75,13 +75,13 @@ const Dashboard = () => {
       setUserRoles(roles);
       
       // Set default active view based on highest role
-      if (roles.includes('sdo')) {
+      if (roles.includes('sdo' as any)) {
         setActiveView('sdo');
-      } else if (roles.includes('admin')) {
+      } else if (roles.includes('admin' as any)) {
         setActiveView('admin');
-      } else if (roles.includes('staff_officer')) {
+      } else if (roles.includes('staff_officer' as any)) {
         setActiveView('staff_officer');
-      } else if (roles.includes('clerk')) {
+      } else if (roles.includes('clerk' as any)) {
         setActiveView('clerk');
       } else {
         setActiveView('citizen');

@@ -1,20 +1,21 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, Upload, CheckCircle } from 'lucide-react';
+import { FileText, CheckCircle } from 'lucide-react';
 import { useCertificateData } from '@/hooks/useCertificateData';
 import { useAuth } from '@/hooks/useAuth';
+import { DocumentUpload } from './DocumentUpload';
+import { useNotifications } from '@/hooks/useNotifications';
 
 export const CertificateApplication = () => {
   const { user } = useAuth();
   const { submitApplication } = useCertificateData();
+  const { sendNotification } = useNotifications();
+  const [submittedApplicationId, setSubmittedApplicationId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     certificate_type: '' as 'caste' | 'income' | 'domicile' | 'residence' | '',
@@ -69,7 +70,7 @@ export const CertificateApplication = () => {
     if (!validateForm()) return;
 
     try {
-      await submitApplication.mutateAsync({
+      const result = await submitApplication.mutateAsync({
         certificate_type: formData.certificate_type as 'caste' | 'income' | 'domicile' | 'residence',
         full_name: formData.full_name,
         father_name: formData.father_name,
@@ -80,6 +81,19 @@ export const CertificateApplication = () => {
         purpose: formData.purpose,
         additional_info: formData.additional_info
       });
+
+      // Send notification email
+      if (result) {
+        setSubmittedApplicationId(result.id);
+        
+        await sendNotification.mutateAsync({
+          applicationId: result.application_id,
+          status: 'pending',
+          userEmail: formData.email,
+          userName: formData.full_name,
+          certificateType: formData.certificate_type
+        });
+      }
 
       // Reset form on success
       setFormData({
@@ -97,6 +111,40 @@ export const CertificateApplication = () => {
       console.error('Error submitting application:', error);
     }
   };
+
+  if (submittedApplicationId) {
+    return (
+      <div className="space-y-6">
+        <Card className="certificate-card">
+          <CardHeader>
+            <CardTitle className="flex items-center text-green-600">
+              <CheckCircle className="h-6 w-6 mr-2" />
+              Application Submitted Successfully!
+            </CardTitle>
+            <CardDescription>
+              Your certificate application has been submitted and is being processed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">You can now upload supporting documents for your application.</p>
+            <Button
+              onClick={() => setSubmittedApplicationId(null)}
+              variant="outline"
+            >
+              Submit Another Application
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <DocumentUpload 
+          applicationId={submittedApplicationId}
+          onUploadComplete={() => {
+            // Could add some feedback here
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <Card className="certificate-card">

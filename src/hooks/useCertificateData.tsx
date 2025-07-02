@@ -1,7 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useNotifications } from './useNotifications';
 import { toast } from 'sonner';
 
 export interface CertificateApplication {
@@ -106,6 +106,7 @@ export const useCertificateData = () => {
 export const useRoleBasedData = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { sendNotification } = useNotifications();
 
   // Fetch applications based on user role
   const { data: roleApplications, isLoading: applicationsLoading } = useQuery({
@@ -124,7 +125,7 @@ export const useRoleBasedData = () => {
     enabled: !!user?.id
   });
 
-  // Update application status with role-specific workflow
+  // Update application status with notification
   const updateApplicationStatus = useMutation({
     mutationFn: async ({ 
       applicationId, 
@@ -167,6 +168,19 @@ export const useRoleBasedData = () => {
         .single();
       
       if (error) throw error;
+
+      // Send notification email
+      try {
+        await sendNotification.mutateAsync({
+          applicationId: data.application_id,
+          status,
+          userEmail: data.email,
+          userName: data.full_name,
+          certificateType: data.certificate_type
+        });
+      } catch (notificationError) {
+        console.error('Failed to send notification:', notificationError);
+      }
 
       // If approved, create certificate
       if (status === 'approved') {

@@ -226,11 +226,23 @@ export const useRoleManagement = () => {
   // Assign role to user
   const assignRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      // First check if role already exists
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('role', role)
+        .single();
+
+      if (existingRole) {
+        throw new Error('User already has this role');
+      }
+
       const { data, error } = await supabase
         .from('user_roles')
         .insert({
           user_id: userId,
-          role: role
+          role: role as any // Type assertion since the enum types aren't updated yet
         })
         .select()
         .single();

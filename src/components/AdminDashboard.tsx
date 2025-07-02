@@ -8,11 +8,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FileText, Clock, CheckCircle, XCircle, User, Calendar } from 'lucide-react';
-import { useAdminData } from '@/hooks/useCertificateData';
+import { useRoleBasedData } from '@/hooks/useCertificateData';
 import { format } from 'date-fns';
 
 export const AdminDashboard = () => {
-  const { allApplications, applicationsLoading, updateApplicationStatus } = useAdminData();
+  const { roleApplications: allApplications, applicationsLoading, updateApplicationStatus } = useRoleBasedData();
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
@@ -20,8 +20,12 @@ export const AdminDashboard = () => {
     switch (status) {
       case 'pending':
         return <Clock className="h-5 w-5 text-yellow-600" />;
-      case 'under_review':
+      case 'document_verification':
         return <Clock className="h-5 w-5 text-blue-600" />;
+      case 'staff_review':
+        return <Clock className="h-5 w-5 text-blue-600" />;
+      case 'awaiting_sdo':
+        return <Clock className="h-5 w-5 text-orange-600" />;
       case 'approved':
         return <CheckCircle className="h-5 w-5 text-green-600" />;
       case 'rejected':
@@ -35,7 +39,11 @@ export const AdminDashboard = () => {
     switch (status) {
       case 'pending':
         return 'status-pending';
-      case 'under_review':
+      case 'document_verification':
+        return 'status-under-review';
+      case 'staff_review':
+        return 'status-under-review';
+      case 'awaiting_sdo':
         return 'status-under-review';
       case 'approved':
         return 'status-approved';
@@ -50,7 +58,7 @@ export const AdminDashboard = () => {
     return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
   };
 
-  const handleStatusUpdate = async (applicationId: string, status: 'pending' | 'under_review' | 'approved' | 'rejected') => {
+  const handleStatusUpdate = async (applicationId: string, status: any) => {
     try {
       await updateApplicationStatus.mutateAsync({
         applicationId,
@@ -75,7 +83,7 @@ export const AdminDashboard = () => {
   const stats = {
     total: allApplications?.length || 0,
     pending: allApplications?.filter(app => app.status === 'pending').length || 0,
-    underReview: allApplications?.filter(app => app.status === 'under_review').length || 0,
+    inProgress: allApplications?.filter(app => ['document_verification', 'staff_review', 'awaiting_sdo'].includes(app.status)).length || 0,
     approved: allApplications?.filter(app => app.status === 'approved').length || 0,
     rejected: allApplications?.filter(app => app.status === 'rejected').length || 0
   };
@@ -98,8 +106,8 @@ export const AdminDashboard = () => {
         </Card>
         <Card className="certificate-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{stats.underReview}</div>
-            <div className="text-sm text-gray-600">Under Review</div>
+            <div className="text-2xl font-bold text-blue-600">{stats.inProgress}</div>
+            <div className="text-sm text-gray-600">In Progress</div>
           </CardContent>
         </Card>
         <Card className="certificate-card">
@@ -190,7 +198,7 @@ export const AdminDashboard = () => {
                           if (value === 'rejected') {
                             setSelectedApplication(application.id);
                           } else {
-                            handleStatusUpdate(application.id, value as any);
+                            handleStatusUpdate(application.id, value);
                           }
                         }}
                       >
@@ -199,7 +207,9 @@ export const AdminDashboard = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="under_review">Under Review</SelectItem>
+                          <SelectItem value="document_verification">Document Verification</SelectItem>
+                          <SelectItem value="staff_review">Staff Review</SelectItem>
+                          <SelectItem value="awaiting_sdo">Awaiting SDO</SelectItem>
                           <SelectItem value="approved">Approved</SelectItem>
                           <SelectItem value="rejected">Rejected</SelectItem>
                         </SelectContent>

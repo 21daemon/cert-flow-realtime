@@ -16,12 +16,20 @@ export interface CertificateApplication {
   email: string;
   purpose: string;
   additional_info?: string;
-  status: 'pending' | 'under_review' | 'approved' | 'rejected';
+  status: 'pending' | 'document_verification' | 'staff_review' | 'awaiting_sdo' | 'approved' | 'rejected' | 'additional_info_needed';
   current_stage?: string;
   progress?: number;
+  workflow_stage?: string;
   created_at: string;
   updated_at: string;
   rejection_reason?: string;
+  clerk_verified_at?: string;
+  clerk_verified_by?: string;
+  staff_reviewed_at?: string;
+  staff_reviewed_by?: string;
+  sdo_approved_at?: string;
+  sdo_approved_by?: string;
+  additional_info_requested?: string;
 }
 
 // Generate unique application ID
@@ -94,14 +102,17 @@ export const useCertificateData = () => {
   };
 };
 
-// Hook for admin/officer data
-export const useAdminData = () => {
+// Hook for role-based data access
+export const useRoleBasedData = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch all applications for admin view
-  const { data: allApplications, isLoading: applicationsLoading } = useQuery({
-    queryKey: ['allApplications'],
+  // Fetch applications based on user role
+  const { data: roleApplications, isLoading: applicationsLoading } = useQuery({
+    queryKey: ['roleApplications', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
         .from('certificate_applications')
         .select('*')
@@ -109,23 +120,43 @@ export const useAdminData = () => {
       
       if (error) throw error;
       return data as CertificateApplication[];
-    }
+    },
+    enabled: !!user?.id
   });
 
-  // Update application status
+  // Update application status with role-specific workflow
   const updateApplicationStatus = useMutation({
     mutationFn: async ({ 
       applicationId, 
       status, 
-      rejectionReason 
+      rejectionReason,
+      additionalInfo 
     }: { 
       applicationId: string; 
-      status: 'pending' | 'under_review' | 'approved' | 'rejected';
+      status: CertificateApplication['status'];
       rejectionReason?: string;
+      additionalInfo?: string;
     }) => {
       const updateData: any = { status };
+      
       if (rejectionReason) {
         updateData.rejection_reason = rejectionReason;
+      }
+      
+      if (additionalInfo) {
+        updateData.additional_info_requested = additionalInfo;
+      }
+
+      // Add role-specific tracking
+      if (status === 'document_verification') {
+        updateData.clerk_verified_at = new Date().toISOString();
+        updateData.clerk_verified_by = user?.id;
+      } else if (status === 'staff_review') {
+        updateData.staff_reviewed_at = new Date().toISOString();
+        updateData.staff_reviewed_by = user?.id;
+      } else if (status === 'approved') {
+        updateData.sdo_approved_at = new Date().toISOString();
+        updateData.sdo_approved_by = user?.id;
       }
 
       const { data, error } = await supabase
@@ -155,7 +186,7 @@ export const useAdminData = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allApplications'] });
+      queryClient.invalidateQueries({ queryKey: ['roleApplications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
       toast.success('Application status updated successfully!');
     },
@@ -166,8 +197,60 @@ export const useAdminData = () => {
   });
 
   return {
-    allApplications,
+    roleApplications,
     applicationsLoading,
     updateApplicationStatus
+  };
+};
+
+// Hook for SDO role management
+export const useRoleManagement = () => {
+  const queryClient = useQueryClient();
+
+  // Fetch all users for role assignment
+  const { data: users, isLoading: usersLoading } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          user_roles (role)
+        `);
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Assign role to user
+  const assignRole = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: role
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+      toast.success('Role assigned successfully!');
+    },
+    onError: (error) => {
+      console.error('Error assigning role:', error);
+      toast.error('Failed to assign role.');
+    }
+  });
+
+  return {
+    users,
+    usersLoading,
+    assignRole
   };
 };

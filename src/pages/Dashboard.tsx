@@ -4,9 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileCheck, Clock, Users, TrendingUp, Bell, Search, Filter, LogOut, Award } from 'lucide-react';
+import { FileCheck, Clock, Users, TrendingUp, Bell, Search, Filter, LogOut, Award, Settings } from 'lucide-react';
 import { CitizenPortal } from '@/components/CitizenPortal';
 import { AdminDashboard } from '@/components/AdminDashboard';
+import { ClerkDashboard } from '@/components/ClerkDashboard';
+import { StaffOfficerDashboard } from '@/components/StaffOfficerDashboard';
+import { SDODashboard } from '@/components/SDODashboard';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,10 +19,10 @@ const Dashboard = () => {
   const [activeView, setActiveView] = useState('citizen');
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [userRole, setUserRole] = useState<'citizen' | 'admin' | 'officer'>('citizen');
+  const [userRoles, setUserRoles] = useState<string[]>(['citizen']);
 
-  // Fetch user role
-  const { data: userRoles } = useQuery({
+  // Fetch user roles
+  const { data: roleData } = useQuery({
     queryKey: ['userRoles', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -66,18 +69,25 @@ const Dashboard = () => {
       return;
     }
 
-    // Set user role based on fetched data
-    if (userRoles && userRoles.length > 0) {
-      const roles = userRoles.map(r => r.role);
-      if (roles.includes('admin')) {
-        setUserRole('admin');
-      } else if (roles.includes('officer')) {
-        setUserRole('officer');
+    // Set user roles based on fetched data
+    if (roleData && roleData.length > 0) {
+      const roles = roleData.map(r => r.role);
+      setUserRoles(roles);
+      
+      // Set default active view based on highest role
+      if (roles.includes('sdo')) {
+        setActiveView('sdo');
+      } else if (roles.includes('admin')) {
+        setActiveView('admin');
+      } else if (roles.includes('staff_officer')) {
+        setActiveView('staff_officer');
+      } else if (roles.includes('clerk')) {
+        setActiveView('clerk');
       } else {
-        setUserRole('citizen');
+        setActiveView('citizen');
       }
     }
-  }, [user, navigate, userRoles]);
+  }, [user, navigate, roleData]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -119,6 +129,94 @@ const Dashboard = () => {
     }
   ];
 
+  const renderRoleButtons = () => {
+    const buttons = [];
+    
+    // Always show citizen portal
+    buttons.push(
+      <Button 
+        key="citizen"
+        variant={activeView === 'citizen' ? 'secondary' : 'ghost'}
+        onClick={() => setActiveView('citizen')}
+        className="text-white hover:bg-white/20"
+      >
+        Citizen Portal
+      </Button>
+    );
+
+    // Show role-specific buttons
+    if (userRoles.includes('clerk')) {
+      buttons.push(
+        <Button 
+          key="clerk"
+          variant={activeView === 'clerk' ? 'secondary' : 'ghost'}
+          onClick={() => setActiveView('clerk')}
+          className="text-white hover:bg-white/20"
+        >
+          Clerk Dashboard
+        </Button>
+      );
+    }
+
+    if (userRoles.includes('staff_officer')) {
+      buttons.push(
+        <Button 
+          key="staff_officer"
+          variant={activeView === 'staff_officer' ? 'secondary' : 'ghost'}
+          onClick={() => setActiveView('staff_officer')}
+          className="text-white hover:bg-white/20"
+        >
+          Staff Officer
+        </Button>
+      );
+    }
+
+    if (userRoles.includes('admin')) {
+      buttons.push(
+        <Button 
+          key="admin"
+          variant={activeView === 'admin' ? 'secondary' : 'ghost'}
+          onClick={() => setActiveView('admin')}
+          className="text-white hover:bg-white/20"
+        >
+          Admin Dashboard
+        </Button>
+      );
+    }
+
+    if (userRoles.includes('sdo')) {
+      buttons.push(
+        <Button 
+          key="sdo"
+          variant={activeView === 'sdo' ? 'secondary' : 'ghost'}
+          onClick={() => setActiveView('sdo')}
+          className="text-white hover:bg-white/20"
+        >
+          SDO Dashboard
+        </Button>
+      );
+    }
+
+    return buttons;
+  };
+
+  const renderActiveView = () => {
+    switch (activeView) {
+      case 'citizen':
+        return <CitizenPortal />;
+      case 'clerk':
+        return <ClerkDashboard />;
+      case 'staff_officer':
+        return <StaffOfficerDashboard />;
+      case 'admin':
+        return <AdminDashboard />;
+      case 'sdo':
+        return <SDODashboard />;
+      default:
+        return <CitizenPortal />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -133,24 +231,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {(userRole === 'admin' || userRole === 'officer') && (
-                <>
-                  <Button 
-                    variant={activeView === 'citizen' ? 'secondary' : 'ghost'}
-                    onClick={() => setActiveView('citizen')}
-                    className="text-white hover:bg-white/20"
-                  >
-                    Citizen Portal
-                  </Button>
-                  <Button 
-                    variant={activeView === 'admin' ? 'secondary' : 'ghost'}
-                    onClick={() => setActiveView('admin')}
-                    className="text-white hover:bg-white/20"
-                  >
-                    Admin Dashboard
-                  </Button>
-                </>
-              )}
+              {renderRoleButtons()}
               <div className="flex items-center space-x-2">
                 <Bell className="h-6 w-6 cursor-pointer hover:scale-110 transition-transform" />
                 <Button
@@ -189,11 +270,7 @@ const Dashboard = () => {
         </div>
 
         {/* Main Content */}
-        {activeView === 'citizen' || userRole === 'citizen' ? (
-          <CitizenPortal />
-        ) : (
-          <AdminDashboard />
-        )}
+        {renderActiveView()}
       </div>
     </div>
   );

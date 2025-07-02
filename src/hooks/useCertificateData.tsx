@@ -226,12 +226,13 @@ export const useRoleManagement = () => {
   // Assign role to user
   const assignRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      // First check if role already exists
+      // First check if role already exists - we'll handle this at the database level
+      // since we can't use the has_role function with our extended role types
       const { data: existingRole } = await supabase
         .from('user_roles')
         .select('id')
         .eq('user_id', userId)
-        .eq('role', role)
+        .eq('role', role as any)
         .single();
 
       if (existingRole) {

@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -16,7 +17,7 @@ export interface CertificateApplication {
   email: string;
   purpose: string;
   additional_info?: string;
-  status: 'pending' | 'document_verification' | 'staff_review' | 'awaiting_sdo' | 'approved' | 'rejected' | 'additional_info_needed';
+  status: 'pending' | 'verification_level_1' | 'verification_level_2' | 'verification_level_3' | 'document_verification' | 'staff_review' | 'awaiting_sdo' | 'approved' | 'rejected' | 'additional_info_needed';
   current_stage?: string;
   progress?: number;
   workflow_stage?: string;
@@ -29,6 +30,12 @@ export interface CertificateApplication {
   staff_reviewed_by?: string;
   sdo_approved_at?: string;
   sdo_approved_by?: string;
+  verification_1_at?: string;
+  verification_1_by?: string;
+  verification_2_at?: string;
+  verification_2_by?: string;
+  verification_3_at?: string;
+  verification_3_by?: string;
   additional_info_requested?: string;
 }
 
@@ -149,7 +156,16 @@ export const useRoleBasedData = () => {
       }
 
       // Add role-specific tracking
-      if (status === 'document_verification') {
+      if (status === 'verification_level_1') {
+        updateData.verification_1_at = new Date().toISOString();
+        updateData.verification_1_by = user?.id;
+      } else if (status === 'verification_level_2') {
+        updateData.verification_2_at = new Date().toISOString();
+        updateData.verification_2_by = user?.id;
+      } else if (status === 'verification_level_3') {
+        updateData.verification_3_at = new Date().toISOString();
+        updateData.verification_3_by = user?.id;
+      } else if (status === 'document_verification') {
         updateData.clerk_verified_at = new Date().toISOString();
         updateData.clerk_verified_by = user?.id;
       } else if (status === 'staff_review') {

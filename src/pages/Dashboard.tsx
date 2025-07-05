@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,9 @@ import { AdminDashboard } from '@/components/AdminDashboard';
 import { ClerkDashboard } from '@/components/ClerkDashboard';
 import { StaffOfficerDashboard } from '@/components/StaffOfficerDashboard';
 import { SDODashboard } from '@/components/SDODashboard';
+import { VerificationOfficer1Dashboard } from '@/components/VerificationOfficer1Dashboard';
+import { VerificationOfficer2Dashboard } from '@/components/VerificationOfficer2Dashboard';
+import { VerificationOfficer3Dashboard } from '@/components/VerificationOfficer3Dashboard';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,13 +76,19 @@ const Dashboard = () => {
       const roles = roleData.map(r => r.role);
       setUserRoles(roles);
       
-      // Set default active view based on highest role
+      // Set default active view based on highest role priority
       if (roles.includes('sdo' as any)) {
         setActiveView('sdo');
       } else if (roles.includes('admin' as any)) {
         setActiveView('admin');
       } else if (roles.includes('staff_officer' as any)) {
         setActiveView('staff_officer');
+      } else if (roles.includes('verification_officer_3' as any)) {
+        setActiveView('verification_officer_3');
+      } else if (roles.includes('verification_officer_2' as any)) {
+        setActiveView('verification_officer_2');
+      } else if (roles.includes('verification_officer_1' as any)) {
+        setActiveView('verification_officer_1');
       } else if (roles.includes('clerk' as any)) {
         setActiveView('clerk');
       } else {
@@ -144,6 +152,46 @@ const Dashboard = () => {
       </Button>
     );
 
+    // Show verification officer buttons
+    if (userRoles.includes('verification_officer_1')) {
+      buttons.push(
+        <Button 
+          key="verification_officer_1"
+          variant={activeView === 'verification_officer_1' ? 'secondary' : 'ghost'}
+          onClick={() => setActiveView('verification_officer_1')}
+          className="text-white hover:bg-white/20"
+        >
+          Level 1 Verification
+        </Button>
+      );
+    }
+
+    if (userRoles.includes('verification_officer_2')) {
+      buttons.push(
+        <Button 
+          key="verification_officer_2"
+          variant={activeView === 'verification_officer_2' ? 'secondary' : 'ghost'}
+          onClick={() => setActiveView('verification_officer_2')}
+          className="text-white hover:bg-white/20"
+        >
+          Level 2 Verification
+        </Button>
+      );
+    }
+
+    if (userRoles.includes('verification_officer_3')) {
+      buttons.push(
+        <Button 
+          key="verification_officer_3"
+          variant={activeView === 'verification_officer_3' ? 'secondary' : 'ghost'}
+          onClick={() => setActiveView('verification_officer_3')}
+          className="text-white hover:bg-white/20"
+        >
+          Level 3 Verification
+        </Button>
+      );
+    }
+
     // Show role-specific buttons
     if (userRoles.includes('clerk')) {
       buttons.push(
@@ -204,6 +252,12 @@ const Dashboard = () => {
     switch (activeView) {
       case 'citizen':
         return <CitizenPortal />;
+      case 'verification_officer_1':
+        return <VerificationOfficer1Dashboard />;
+      case 'verification_officer_2':
+        return <VerificationOfficer2Dashboard />;
+      case 'verification_officer_3':
+        return <VerificationOfficer3Dashboard />;
       case 'clerk':
         return <ClerkDashboard />;
       case 'staff_officer':
@@ -216,6 +270,10 @@ const Dashboard = () => {
         return <CitizenPortal />;
     }
   };
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

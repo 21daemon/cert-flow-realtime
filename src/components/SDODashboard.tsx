@@ -181,6 +181,9 @@ export const SDODashboard = () => {
                   <SelectValue placeholder="Choose a role..." />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="verification_officer_1">Verification Officer Level 1</SelectItem>
+                  <SelectItem value="verification_officer_2">Verification Officer Level 2</SelectItem>
+                  <SelectItem value="verification_officer_3">Verification Officer Level 3</SelectItem>
                   <SelectItem value="clerk">Clerk</SelectItem>
                   <SelectItem value="staff_officer">Staff Officer</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>

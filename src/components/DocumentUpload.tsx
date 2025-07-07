@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, File, X } from 'lucide-react';
+import { Upload, File, X, AlertCircle } from 'lucide-react';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DocumentUploadProps {
   applicationId: string;
@@ -17,6 +18,7 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState('');
   const [documentName, setDocumentName] = useState('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const { uploadDocument, uploading } = useDocumentUpload();
 
   const documentTypes = [
@@ -30,17 +32,33 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError('File size must be less than 10MB');
+        return;
+      }
+      
+      // Check file type
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        setUploadError('Only PDF, JPG, PNG, and DOC files are allowed');
+        return;
+      }
+      
       setSelectedFile(file);
       setDocumentName(file.name);
+      setUploadError(null);
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile || !documentType || !documentName) {
+      setUploadError('Please fill in all required fields');
       return;
     }
 
     try {
+      setUploadError(null);
       await uploadDocument(applicationId, {
         file: selectedFile,
         documentType,
@@ -57,14 +75,24 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
       if (fileInput) fileInput.value = '';
       
       onUploadComplete?.();
-    } catch (error) {
-      // Error is handled in the hook
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      
+      // Handle specific error types
+      if (error?.message?.includes('row-level security')) {
+        setUploadError('You can only upload documents for your own applications. Please make sure you are logged in and this is your application.');
+      } else if (error?.message?.includes('storage')) {
+        setUploadError('Storage error occurred. Please try again.');
+      } else {
+        setUploadError('Failed to upload document. Please try again.');
+      }
     }
   };
 
   const removeFile = () => {
     setSelectedFile(null);
     setDocumentName('');
+    setUploadError(null);
     const fileInput = document.getElementById('document-file') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
   };
@@ -81,6 +109,13 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {uploadError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{uploadError}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="document-type">Document Type</Label>
           <Select value={documentType} onValueChange={setDocumentType}>
@@ -115,6 +150,9 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
             onChange={handleFileSelect}
             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
           />
+          <p className="text-xs text-gray-500">
+            Accepted formats: PDF, JPG, PNG, DOC, DOCX (Max size: 10MB)
+          </p>
         </div>
 
         {selectedFile && (
@@ -150,7 +188,7 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
             <>
               <Upload className="h-4 w-4 mr-2" />
               Upload Document
-            </>
+            </Button>
           )}
         </Button>
       </CardContent>

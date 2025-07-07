@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,7 +16,8 @@ export const useCertificateData = () => {
       const { data, error } = await supabase
         .from('certificate_applications')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       if (error) {
         console.error('Error fetching applications:', error);
         throw error;
@@ -82,7 +84,8 @@ export const useRoleBasedData = () => {
       console.log('Fetching role-based applications for user:', user.id);
       const { data, error } = await supabase
         .from('certificate_applications')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
       if (error) {
         console.error('Error fetching role applications:', error);
         throw error;
@@ -107,15 +110,20 @@ export const useRoleBasedData = () => {
     }) => {
       console.log('Updating application status:', { applicationId, status, rejectionReason, additionalInfo });
       
-      const updates: any = { status };
+      const updates: any = { 
+        status,
+        updated_at: new Date().toISOString()
+      };
+      
       if (rejectionReason) {
         updates.rejection_reason = rejectionReason;
+        updates.rejected_at = new Date().toISOString();
       }
       if (additionalInfo) {
         updates.additional_info = additionalInfo;
       }
       
-      // Set timestamp fields based on status
+      // Set timestamp fields based on status and user role
       if (status === 'document_verification') {
         updates.clerk_verified_at = new Date().toISOString();
       } else if (status === 'staff_review') {
@@ -129,6 +137,8 @@ export const useRoleBasedData = () => {
       } else if (status === 'verification_level_3') {
         updates.verification_3_at = new Date().toISOString();
         updates.verification_3_by = user?.id;
+      } else if (status === 'approved') {
+        updates.approved_at = new Date().toISOString();
       }
       
       const { data, error } = await supabase
@@ -166,6 +176,8 @@ export const useRoleBasedData = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roleApplications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['user-certificates'] });
     },
     onError: (error) => {
       console.error('Mutation error:', error);

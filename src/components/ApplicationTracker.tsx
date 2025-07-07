@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, Clock, CheckCircle, XCircle, Download, Eye, Calendar } from 'lucide-react';
+import { FileText, Clock, CheckCircle, XCircle, Download, Eye, Calendar, User } from 'lucide-react';
 import { useCertificateData } from '@/hooks/useCertificateData';
 import { format } from 'date-fns';
 
@@ -115,6 +115,28 @@ export const ApplicationTracker = () => {
     }
   };
 
+  const handleDownloadCertificate = async (applicationId: string, applicationData: any) => {
+    try {
+      // Generate and download the certificate PDF
+      const { generateCertificatePDF } = await import('@/utils/pdfGenerator');
+      
+      const pdf = generateCertificatePDF({
+        certificateNumber: `CERT-${applicationData.application_id}`,
+        fullName: applicationData.full_name,
+        fatherName: applicationData.father_name,
+        dateOfBirth: applicationData.date_of_birth,
+        address: applicationData.address,
+        certificateType: applicationData.certificate_type,
+        issuedDate: applicationData.approved_at ? format(new Date(applicationData.approved_at), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy'),
+        digitalSignature: 'Digital Signature Applied'
+      });
+      
+      pdf.save(`${applicationData.certificate_type}_certificate_${applicationData.application_id}.pdf`);
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -185,39 +207,110 @@ export const ApplicationTracker = () => {
               </p>
             </div>
 
-            {/* Process Timeline */}
-            <div className="space-y-2">
+            {/* Detailed Process Timeline */}
+            <div className="space-y-3">
               <h4 className="text-sm font-medium text-gray-700 flex items-center">
                 <Calendar className="h-4 w-4 mr-2" />
-                Process Timeline
+                Verification Timeline
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Submitted:</span>
-                  <span>{format(new Date(application.created_at), 'MMM dd, yyyy HH:mm')}</span>
+              <div className="space-y-2 text-sm">
+                {/* Application Submitted */}
+                <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="h-4 w-4 text-blue-600" />
+                    <span className="font-medium">Application Submitted</span>
+                  </div>
+                  <span className="text-gray-600">
+                    {format(new Date(application.created_at), 'MMM dd, yyyy HH:mm')}
+                  </span>
                 </div>
-                {application.clerk_verified_at && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Clerk Verified:</span>
-                    <span>{format(new Date(application.clerk_verified_at), 'MMM dd, yyyy HH:mm')}</span>
+
+                {/* Level 1 Verification */}
+                {application.verification_1_at && (
+                  <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="font-medium">Level 1 Verification Completed</span>
+                    </div>
+                    <span className="text-gray-600">
+                      {format(new Date(application.verification_1_at), 'MMM dd, yyyy HH:mm')}
+                    </span>
                   </div>
                 )}
+
+                {/* Level 2 Verification */}
+                {application.verification_2_at && (
+                  <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="font-medium">Level 2 Verification Completed</span>
+                    </div>
+                    <span className="text-gray-600">
+                      {format(new Date(application.verification_2_at), 'MMM dd, yyyy HH:mm')}
+                    </span>
+                  </div>
+                )}
+
+                {/* Level 3 Verification */}
+                {application.verification_3_at && (
+                  <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="font-medium">Level 3 Verification Completed</span>
+                    </div>
+                    <span className="text-gray-600">
+                      {format(new Date(application.verification_3_at), 'MMM dd, yyyy HH:mm')}
+                    </span>
+                  </div>
+                )}
+
+                {/* Staff Review */}
                 {application.staff_reviewed_at && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Staff Reviewed:</span>
-                    <span>{format(new Date(application.staff_reviewed_at), 'MMM dd, yyyy HH:mm')}</span>
+                  <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="font-medium">Staff Review Completed</span>
+                    </div>
+                    <span className="text-gray-600">
+                      {format(new Date(application.staff_reviewed_at), 'MMM dd, yyyy HH:mm')}
+                    </span>
                   </div>
                 )}
+
+                {/* Final Approval */}
                 {application.approved_at && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Approved:</span>
-                    <span>{format(new Date(application.approved_at), 'MMM dd, yyyy HH:mm')}</span>
+                  <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="font-medium">Certificate Approved & Issued</span>
+                    </div>
+                    <span className="text-gray-600">
+                      {format(new Date(application.approved_at), 'MMM dd, yyyy HH:mm')}
+                    </span>
                   </div>
                 )}
+
+                {/* Rejection */}
                 {application.rejected_at && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Rejected:</span>
-                    <span>{format(new Date(application.rejected_at), 'MMM dd, yyyy HH:mm')}</span>
+                  <div className="flex items-center justify-between p-2 bg-red-50 rounded">
+                    <div className="flex items-center space-x-2">
+                      <XCircle className="h-4 w-4 text-red-600" />
+                      <span className="font-medium">Application Rejected</span>
+                    </div>
+                    <span className="text-gray-600">
+                      {format(new Date(application.rejected_at), 'MMM dd, yyyy HH:mm')}
+                    </span>
+                  </div>
+                )}
+
+                {/* Current Status (if not completed) */}
+                {!application.approved_at && !application.rejected_at && (
+                  <div className="flex items-center justify-between p-2 bg-yellow-50 rounded">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-4 w-4 text-yellow-600" />
+                      <span className="font-medium">Currently at: {getCurrentStage(application.status)}</span>
+                    </div>
+                    <span className="text-gray-600">In Progress</span>
                   </div>
                 )}
               </div>
@@ -230,16 +323,16 @@ export const ApplicationTracker = () => {
                 <p>{application.full_name}</p>
               </div>
               <div>
-                <span className="font-medium text-gray-600">Application Date:</span>
-                <p>{format(new Date(application.created_at), 'MMM dd, yyyy')}</p>
-              </div>
-              <div>
                 <span className="font-medium text-gray-600">Phone:</span>
                 <p>{application.phone_number}</p>
               </div>
               <div>
                 <span className="font-medium text-gray-600">Email:</span>
                 <p>{application.email}</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-600">Application Date:</span>
+                <p>{format(new Date(application.created_at), 'MMM dd, yyyy')}</p>
               </div>
             </div>
 
@@ -274,7 +367,11 @@ export const ApplicationTracker = () => {
                 View Details
               </Button>
               {application.status === 'approved' && (
-                <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                <Button 
+                  size="sm" 
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => handleDownloadCertificate(application.id, application)}
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Download Certificate
                 </Button>

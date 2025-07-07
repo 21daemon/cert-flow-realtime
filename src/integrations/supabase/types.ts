@@ -60,6 +60,7 @@ export type Database = {
           approved_at: string | null
           assigned_officer: string | null
           certificate_type: Database["public"]["Enums"]["certificate_type"]
+          clerk_verified_at: string | null
           created_at: string | null
           current_stage: string | null
           date_of_birth: string
@@ -74,6 +75,7 @@ export type Database = {
           rejected_at: string | null
           rejection_reason: string | null
           reviewed_at: string | null
+          staff_reviewed_at: string | null
           status: Database["public"]["Enums"]["application_status"] | null
           submitted_at: string | null
           updated_at: string | null
@@ -86,6 +88,7 @@ export type Database = {
           approved_at?: string | null
           assigned_officer?: string | null
           certificate_type: Database["public"]["Enums"]["certificate_type"]
+          clerk_verified_at?: string | null
           created_at?: string | null
           current_stage?: string | null
           date_of_birth: string
@@ -100,6 +103,7 @@ export type Database = {
           rejected_at?: string | null
           rejection_reason?: string | null
           reviewed_at?: string | null
+          staff_reviewed_at?: string | null
           status?: Database["public"]["Enums"]["application_status"] | null
           submitted_at?: string | null
           updated_at?: string | null
@@ -112,6 +116,7 @@ export type Database = {
           approved_at?: string | null
           assigned_officer?: string | null
           certificate_type?: Database["public"]["Enums"]["certificate_type"]
+          clerk_verified_at?: string | null
           created_at?: string | null
           current_stage?: string | null
           date_of_birth?: string
@@ -126,6 +131,7 @@ export type Database = {
           rejected_at?: string | null
           rejection_reason?: string | null
           reviewed_at?: string | null
+          staff_reviewed_at?: string | null
           status?: Database["public"]["Enums"]["application_status"] | null
           submitted_at?: string | null
           updated_at?: string | null
@@ -287,7 +293,18 @@ export type Database = {
       }
     }
     Enums: {
-      application_status: "pending" | "under_review" | "approved" | "rejected"
+      application_status:
+        | "pending"
+        | "under_review"
+        | "approved"
+        | "rejected"
+        | "document_verification"
+        | "verification_level_1"
+        | "verification_level_2"
+        | "verification_level_3"
+        | "staff_review"
+        | "awaiting_sdo"
+        | "additional_info_needed"
       certificate_type: "caste" | "income" | "domicile" | "residence"
       user_role:
         | "citizen"
@@ -426,7 +443,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      application_status: ["pending", "under_review", "approved", "rejected"],
+      application_status: [
+        "pending",
+        "under_review",
+        "approved",
+        "rejected",
+        "document_verification",
+        "verification_level_1",
+        "verification_level_2",
+        "verification_level_3",
+        "staff_review",
+        "awaiting_sdo",
+        "additional_info_needed",
+      ],
       certificate_type: ["caste", "income", "domicile", "residence"],
       user_role: [
         "citizen",

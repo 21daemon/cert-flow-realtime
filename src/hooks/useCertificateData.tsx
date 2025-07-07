@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,11 +11,16 @@ export const useCertificateData = () => {
     queryKey: ['applications', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      console.log('Fetching applications for user:', user.id);
       const { data, error } = await supabase
         .from('certificate_applications')
         .select('*')
         .eq('user_id', user.id);
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching applications:', error);
+        throw error;
+      }
+      console.log('Applications fetched:', data);
       return data;
     },
     enabled: !!user?.id,
@@ -75,10 +79,15 @@ export const useRoleBasedData = () => {
     queryKey: ['roleApplications', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      console.log('Fetching role-based applications for user:', user.id);
       const { data, error } = await supabase
         .from('certificate_applications')
         .select('*');
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching role applications:', error);
+        throw error;
+      }
+      console.log('Role applications fetched:', data);
       return data;
     },
     enabled: !!user?.id,
@@ -96,6 +105,8 @@ export const useRoleBasedData = () => {
       rejectionReason?: string;
       additionalInfo?: string;
     }) => {
+      console.log('Updating application status:', { applicationId, status, rejectionReason, additionalInfo });
+      
       const updates: any = { status };
       if (rejectionReason) {
         updates.rejection_reason = rejectionReason;
@@ -109,6 +120,15 @@ export const useRoleBasedData = () => {
         updates.clerk_verified_at = new Date().toISOString();
       } else if (status === 'staff_review') {
         updates.staff_reviewed_at = new Date().toISOString();
+      } else if (status === 'verification_level_1') {
+        updates.verification_1_at = new Date().toISOString();
+        updates.verification_1_by = user?.id;
+      } else if (status === 'verification_level_2') {
+        updates.verification_2_at = new Date().toISOString();
+        updates.verification_2_by = user?.id;
+      } else if (status === 'verification_level_3') {
+        updates.verification_3_at = new Date().toISOString();
+        updates.verification_3_by = user?.id;
       }
       
       const { data, error } = await supabase
@@ -118,7 +138,12 @@ export const useRoleBasedData = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating application:', error);
+        throw error;
+      }
+      
+      console.log('Application updated successfully:', data);
       
       // Send notification automatically
       if (data) {
@@ -130,6 +155,7 @@ export const useRoleBasedData = () => {
             userName: data.full_name,
             certificateType: data.certificate_type
           });
+          console.log('Notification sent successfully');
         } catch (notificationError) {
           console.error('Failed to send notification:', notificationError);
           // Don't fail the main operation if notification fails
@@ -141,6 +167,9 @@ export const useRoleBasedData = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roleApplications', user?.id] });
     },
+    onError: (error) => {
+      console.error('Mutation error:', error);
+    }
   });
 
   return {

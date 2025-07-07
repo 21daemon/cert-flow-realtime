@@ -5,9 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Eye, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { useRoleBasedData } from '@/hooks/useCertificateData';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export const VerificationOfficer1Dashboard = () => {
   const { roleApplications, applicationsLoading, updateApplicationStatus } = useRoleBasedData();
+  const { toast } = useToast();
 
   // Filter applications for level 1 verification
   const level1Applications = roleApplications?.filter(
@@ -15,27 +17,69 @@ export const VerificationOfficer1Dashboard = () => {
   ) || [];
 
   const handleStartVerification = async (applicationId: string) => {
-    await updateApplicationStatus.mutateAsync({
-      applicationId,
-      status: 'verification_level_1'
-    });
+    try {
+      await updateApplicationStatus.mutateAsync({
+        applicationId,
+        status: 'verification_level_1'
+      });
+      
+      toast({
+        title: "Verification Started",
+        description: "Level 1 verification has been initiated for this application.",
+      });
+    } catch (error) {
+      console.error('Error starting verification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start verification. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleForwardToLevel2 = async (applicationId: string) => {
-    await updateApplicationStatus.mutateAsync({
-      applicationId,
-      status: 'verification_level_2'
-    });
+    try {
+      await updateApplicationStatus.mutateAsync({
+        applicationId,
+        status: 'verification_level_2'
+      });
+      
+      toast({
+        title: "Forwarded to Level 2",
+        description: "Application has been forwarded to Level 2 verification.",
+      });
+    } catch (error) {
+      console.error('Error forwarding to level 2:', error);
+      toast({
+        title: "Error",
+        description: "Failed to forward application. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRequestInfo = async (applicationId: string) => {
     const additionalInfo = prompt('What additional information is needed?');
     if (additionalInfo) {
-      await updateApplicationStatus.mutateAsync({
-        applicationId,
-        status: 'additional_info_needed',
-        additionalInfo
-      });
+      try {
+        await updateApplicationStatus.mutateAsync({
+          applicationId,
+          status: 'additional_info_needed',
+          additionalInfo
+        });
+        
+        toast({
+          title: "Information Requested",
+          description: "Additional information has been requested from the applicant.",
+        });
+      } catch (error) {
+        console.error('Error requesting additional info:', error);
+        toast({
+          title: "Error",
+          description: "Failed to request additional information. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

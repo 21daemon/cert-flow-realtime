@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, Clock, CheckCircle, XCircle, Download, Eye } from 'lucide-react';
+import { FileText, Clock, CheckCircle, XCircle, Download, Eye, Calendar } from 'lucide-react';
 import { useCertificateData } from '@/hooks/useCertificateData';
 import { format } from 'date-fns';
 
@@ -16,11 +16,19 @@ export const ApplicationTracker = () => {
       case 'pending':
         return <Clock className="h-5 w-5 text-yellow-600" />;
       case 'under_review':
+      case 'document_verification':
+      case 'verification_level_1':
+      case 'verification_level_2':
+      case 'verification_level_3':
+      case 'staff_review':
+      case 'awaiting_sdo':
         return <Clock className="h-5 w-5 text-blue-600" />;
       case 'approved':
         return <CheckCircle className="h-5 w-5 text-green-600" />;
       case 'rejected':
         return <XCircle className="h-5 w-5 text-red-600" />;
+      case 'additional_info_needed':
+        return <Clock className="h-5 w-5 text-orange-600" />;
       default:
         return <FileText className="h-5 w-5 text-gray-600" />;
     }
@@ -31,11 +39,19 @@ export const ApplicationTracker = () => {
       case 'pending':
         return 'status-pending';
       case 'under_review':
+      case 'document_verification':
+      case 'verification_level_1':
+      case 'verification_level_2':
+      case 'verification_level_3':
+      case 'staff_review':
+      case 'awaiting_sdo':
         return 'status-under-review';
       case 'approved':
         return 'status-approved';
       case 'rejected':
         return 'status-rejected';
+      case 'additional_info_needed':
+        return 'status-pending';
       default:
         return 'status-pending';
     }
@@ -43,6 +59,60 @@ export const ApplicationTracker = () => {
 
   const formatCertificateType = (type: string) => {
     return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
+  };
+
+  const getProgressValue = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 10;
+      case 'document_verification':
+        return 25;
+      case 'verification_level_1':
+        return 40;
+      case 'verification_level_2':
+        return 55;
+      case 'verification_level_3':
+        return 70;
+      case 'staff_review':
+        return 85;
+      case 'awaiting_sdo':
+        return 95;
+      case 'approved':
+        return 100;
+      case 'rejected':
+        return 0;
+      case 'additional_info_needed':
+        return 20;
+      default:
+        return 10;
+    }
+  };
+
+  const getCurrentStage = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Application Submitted';
+      case 'document_verification':
+        return 'Document Verification';
+      case 'verification_level_1':
+        return 'Level 1 Verification';
+      case 'verification_level_2':
+        return 'Level 2 Verification';
+      case 'verification_level_3':
+        return 'Level 3 Verification';
+      case 'staff_review':
+        return 'Staff Review';
+      case 'awaiting_sdo':
+        return 'Awaiting SDO Approval';
+      case 'approved':
+        return 'Certificate Approved';
+      case 'rejected':
+        return 'Application Rejected';
+      case 'additional_info_needed':
+        return 'Additional Information Required';
+      default:
+        return 'Processing';
+    }
   };
 
   if (isLoading) {
@@ -107,12 +177,50 @@ export const ApplicationTracker = () => {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Progress</span>
-                <span>{application.progress || 25}%</span>
+                <span>{getProgressValue(application.status)}%</span>
               </div>
-              <Progress value={application.progress || 25} className="w-full" />
+              <Progress value={getProgressValue(application.status)} className="w-full" />
               <p className="text-sm text-gray-600">
-                Current Stage: {application.current_stage || 'Initial Review'}
+                Current Stage: {getCurrentStage(application.status)}
               </p>
+            </div>
+
+            {/* Process Timeline */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-gray-700 flex items-center">
+                <Calendar className="h-4 w-4 mr-2" />
+                Process Timeline
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Submitted:</span>
+                  <span>{format(new Date(application.created_at), 'MMM dd, yyyy HH:mm')}</span>
+                </div>
+                {application.clerk_verified_at && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Clerk Verified:</span>
+                    <span>{format(new Date(application.clerk_verified_at), 'MMM dd, yyyy HH:mm')}</span>
+                  </div>
+                )}
+                {application.staff_reviewed_at && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Staff Reviewed:</span>
+                    <span>{format(new Date(application.staff_reviewed_at), 'MMM dd, yyyy HH:mm')}</span>
+                  </div>
+                )}
+                {application.approved_at && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Approved:</span>
+                    <span>{format(new Date(application.approved_at), 'MMM dd, yyyy HH:mm')}</span>
+                  </div>
+                )}
+                {application.rejected_at && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Rejected:</span>
+                    <span>{format(new Date(application.rejected_at), 'MMM dd, yyyy HH:mm')}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Application Details */}
@@ -140,6 +248,14 @@ export const ApplicationTracker = () => {
               <span className="font-medium text-gray-600">Purpose:</span>
               <p className="mt-1">{application.purpose}</p>
             </div>
+
+            {/* Additional Info */}
+            {application.additional_info && (
+              <div className="text-sm">
+                <span className="font-medium text-gray-600">Additional Information:</span>
+                <p className="mt-1">{application.additional_info}</p>
+              </div>
+            )}
 
             {/* Rejection Reason */}
             {application.status === 'rejected' && application.rejection_reason && (

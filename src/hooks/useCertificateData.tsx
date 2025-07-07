@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useNotifications } from '@/hooks/useNotifications';
 
 export const useCertificateData = () => {
   const { user } = useAuth();
@@ -68,6 +69,7 @@ export const useCertificateData = () => {
 export const useRoleBasedData = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { sendNotification } = useNotifications();
 
   const { data: roleApplications, isLoading: applicationsLoading } = useQuery({
     queryKey: ['roleApplications', user?.id],
@@ -112,8 +114,28 @@ export const useRoleBasedData = () => {
       const { data, error } = await supabase
         .from('certificate_applications')
         .update(updates)
-        .eq('id', applicationId);
+        .eq('id', applicationId)
+        .select()
+        .single();
+      
       if (error) throw error;
+      
+      // Send notification automatically
+      if (data) {
+        try {
+          await sendNotification.mutateAsync({
+            applicationId: data.application_id,
+            status: data.status,
+            userEmail: data.email,
+            userName: data.full_name,
+            certificateType: data.certificate_type
+          });
+        } catch (notificationError) {
+          console.error('Failed to send notification:', notificationError);
+          // Don't fail the main operation if notification fails
+        }
+      }
+      
       return data;
     },
     onSuccess: () => {

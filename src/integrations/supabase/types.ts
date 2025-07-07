@@ -80,6 +80,12 @@ export type Database = {
           submitted_at: string | null
           updated_at: string | null
           user_id: string
+          verification_1_at: string | null
+          verification_1_by: string | null
+          verification_2_at: string | null
+          verification_2_by: string | null
+          verification_3_at: string | null
+          verification_3_by: string | null
         }
         Insert: {
           additional_info?: string | null
@@ -108,6 +114,12 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string | null
           user_id: string
+          verification_1_at?: string | null
+          verification_1_by?: string | null
+          verification_2_at?: string | null
+          verification_2_by?: string | null
+          verification_3_at?: string | null
+          verification_3_by?: string | null
         }
         Update: {
           additional_info?: string | null
@@ -136,6 +148,12 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string | null
           user_id?: string
+          verification_1_at?: string | null
+          verification_1_by?: string | null
+          verification_2_at?: string | null
+          verification_2_by?: string | null
+          verification_3_at?: string | null
+          verification_3_by?: string | null
         }
         Relationships: []
       }

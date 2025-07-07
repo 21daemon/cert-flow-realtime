@@ -188,7 +188,7 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
             <>
               <Upload className="h-4 w-4 mr-2" />
               Upload Document
-            </Button>
+            </>
           )}
         </Button>
       </CardContent>

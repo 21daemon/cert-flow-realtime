@@ -77,15 +77,7 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
       onUploadComplete?.();
     } catch (error: any) {
       console.error('Upload error:', error);
-      
-      // Handle specific error types
-      if (error?.message?.includes('row-level security')) {
-        setUploadError('You can only upload documents for your own applications. Please make sure you are logged in and this is your application.');
-      } else if (error?.message?.includes('storage')) {
-        setUploadError('Storage error occurred. Please try again.');
-      } else {
-        setUploadError('Failed to upload document. Please try again.');
-      }
+      setUploadError('Failed to upload document. Please try again.');
     }
   };
 

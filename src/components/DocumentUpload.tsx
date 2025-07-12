@@ -46,26 +46,30 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
       }
       
       setSelectedFile(file);
-      setDocumentName(file.name);
+      if (!documentName) {
+        setDocumentName(file.name);
+      }
       setUploadError(null);
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile || !documentType || !documentName) {
-      setUploadError('Please fill in all required fields');
+      setUploadError('Please fill in all required fields and select a file');
       return;
     }
 
     try {
       setUploadError(null);
+      console.log('Starting document upload:', { applicationId, documentType, documentName, fileName: selectedFile.name });
+      
       await uploadDocument(applicationId, {
         file: selectedFile,
         documentType,
         documentName
       });
       
-      // Reset form
+      // Reset form after successful upload
       setSelectedFile(null);
       setDocumentType('');
       setDocumentName('');
@@ -77,7 +81,7 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
       onUploadComplete?.();
     } catch (error: any) {
       console.error('Upload error:', error);
-      setUploadError('Failed to upload document. Please try again.');
+      setUploadError(error.message || 'Failed to upload document. Please try again.');
     }
   };
 
@@ -109,7 +113,7 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="document-type">Document Type</Label>
+          <Label htmlFor="document-type">Document Type *</Label>
           <Select value={documentType} onValueChange={setDocumentType}>
             <SelectTrigger>
               <SelectValue placeholder="Select document type" />
@@ -125,7 +129,7 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="document-name">Document Name</Label>
+          <Label htmlFor="document-name">Document Name *</Label>
           <Input
             id="document-name"
             value={documentName}
@@ -135,7 +139,7 @@ export const DocumentUpload = ({ applicationId, onUploadComplete }: DocumentUplo
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="document-file">Select File</Label>
+          <Label htmlFor="document-file">Select File *</Label>
           <Input
             id="document-file"
             type="file"

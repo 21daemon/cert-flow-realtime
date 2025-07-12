@@ -16,6 +16,8 @@ export const useDocumentUpload = () => {
     setUploading(true);
     
     try {
+      console.log('Upload started:', { applicationId, documentType: document.documentType, fileName: document.file.name });
+      
       const fileExt = document.file.name.split('.').pop();
       const fileName = `${applicationId}/${document.documentType}_${Date.now()}.${fileExt}`;
       
@@ -24,7 +26,12 @@ export const useDocumentUpload = () => {
         .from('certificate-documents')
         .upload(fileName, document.file);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw uploadError;
+      }
+      
+      console.log('File uploaded to storage:', uploadData.path);
       
       // Save document info to database
       const { error: dbError } = await supabase
@@ -37,15 +44,20 @@ export const useDocumentUpload = () => {
           file_size: document.file.size
         });
       
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        throw dbError;
+      }
       
+      console.log('Document record saved to database');
       toast.success('Document uploaded successfully!');
       return uploadData.path;
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading document:', error);
-      toast.error('Failed to upload document');
-      throw error;
+      const errorMessage = error.message || 'Failed to upload document';
+      toast.error(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setUploading(false);
     }

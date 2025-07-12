@@ -71,12 +71,12 @@ const Dashboard = () => {
       return;
     }
 
-    // Set user roles based on fetched data - but always keep citizen access
+    // Always include citizen access for all users
     if (roleData && roleData.length > 0) {
       const roles = roleData.map(r => r.role);
-      setUserRoles(['citizen', ...roles]); // Always include citizen
+      setUserRoles(['citizen', ...roles]);
       
-      // Set default active view based on highest role priority, but allow citizen access
+      // Set default active view but always allow citizen access
       if (roles.includes('sdo' as any)) {
         setActiveView('sdo');
       } else if (roles.includes('admin' as any)) {
@@ -95,7 +95,6 @@ const Dashboard = () => {
         setActiveView('citizen');
       }
     } else {
-      // If no specific roles, default to citizen
       setUserRoles(['citizen']);
       setActiveView('citizen');
     }
@@ -144,7 +143,7 @@ const Dashboard = () => {
   const renderRoleButtons = () => {
     const buttons = [];
     
-    // Always show citizen portal for all users
+    // Always show citizen portal for ALL users - this is the key fix
     buttons.push(
       <Button 
         key="citizen"
@@ -156,7 +155,7 @@ const Dashboard = () => {
       </Button>
     );
 
-    // Show verification officer buttons
+    // Show role-specific buttons
     if (userRoles.includes('verification_officer_1')) {
       buttons.push(
         <Button 
@@ -196,7 +195,6 @@ const Dashboard = () => {
       );
     }
 
-    // Show role-specific buttons
     if (userRoles.includes('clerk')) {
       buttons.push(
         <Button 
